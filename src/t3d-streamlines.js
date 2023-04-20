@@ -7,7 +7,7 @@
   Mesh,
   ShaderMaterial,
   Group,
-} from "./t3d_lib/build/t3d.module.js";
+} from "../t3d_lib/build/t3d.module.js";
 
 const t3d = window.t3d
   ? window.t3d // Prefer consumption from global t3d, if exists
