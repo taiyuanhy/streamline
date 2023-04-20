@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<title>t3d - streamlines</title>
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link type="text/css" rel="stylesheet" href="./t3d_lib/main.css">
+	<script src="./t3d_lib/libs/jquery.min.js"></script>
+</head>
+
+<body>
+	<div id="info">
+		<a href="" target="_blank">t3d</a> - streamlines
+	</div>
+	<script src="./axios.min.js"></script>
+	<script async src="../t3d_lib/libs/es-module-shims.js"></script>
+	<script type="importmap">
+		{
+            "imports": {
+                "t3d": "./t3d_lib/build/t3d.module.js"
+            }
+        }
+    </script>
+
+	<script type="module">
+		import * as t3d from 't3d';
+		import { OrbitControls } from './t3d_lib/jsm/controls/OrbitControls.js';
+		import { GUI } from './t3d_lib/libs/lil-gui.esm.min.js';
+		import { ForwardRenderer } from './t3d_lib/jsm/render/ForwardRenderer.js';
+		import { Streamlines } from './src/t3d-streamlines.js';
+
+
+		var streamlines;
+		let width = window.innerWidth || 2;
+		let height = window.innerHeight || 2;
+
+		const canvas = document.createElement('canvas');
+		canvas.width = width;
+		canvas.height = height;
+		document.body.appendChild(canvas);
+
+		const contextParams = { antialias: true, alpha: true };
+		const gl = canvas.getContext("webgl2", contextParams) || canvas.getContext("webgl", contextParams);
+		const renderer = new t3d.Renderer(gl);
+
+		const capabilities = renderer.renderPass.capabilities;
+		const isWebGL2 = capabilities.version > 1;
+
+
+		const glScene = new t3d.Scene();
+
+		const camera = new t3d.Camera();
+		camera.updateMatrix();
+		camera.position.set(  1, 36,  40);
+
+		camera.lookAt(new t3d.Vector3(0, 0, 0), new t3d.Vector3(0, 1, 0));
+		camera.setPerspective(45 / 180 * Math.PI, width / height, 0.001, 1000);
+		glScene.add(camera);
+
+		const ambientLight = new t3d.AmbientLight(0xffffff, 0.3);
+		glScene.add(ambientLight);
+
+		const forwardRenderer = new ForwardRenderer(canvas);
+	
+		const controller = new OrbitControls(camera, canvas);
+		controller.target.set(0, 0, 0);
+
+		async function init() {
+			var { data } = await axios.get(
+				"./data/tornado.json"
+			);
+			
+			streamlines = new Streamlines(data.grid, data.bounds,{ noParticles: 5000,maxAge:100});//
+			let steamlinesGroup = streamlines.object();
+			glScene.add(steamlinesGroup);
+
+			loop();
+			
+		}
+
+
+
+
+		init();
+		function loop() {
+			controller.update();
+			streamlines.animate();
+			forwardRenderer.render(glScene, camera);
+			requestAnimationFrame(loop);
+		}
+
+
+		function onWindowResize() {
+			width = window.innerWidth || 2;
+			height = window.innerHeight || 2;
+
+			camera.setPerspective(45 / 180 * Math.PI, width / height, 1, 1000);
+			forwardRenderer.backRenderTarget.resize(width, height);
+		}
+		window.addEventListener("resize", onWindowResize, false);
+
+		const gui = new GUI();
+
+	</script>
+</body>
+
+</html>

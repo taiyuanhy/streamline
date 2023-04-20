@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<title>t3d - streamlines</title>
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link type="text/css" rel="stylesheet" href="./t3d_lib/main.css">
+	<script src="./t3d_lib/libs/jquery.min.js"></script>
+</head>
+
+<body>
+	<div id="info">
+		<a href="" target="_blank">t3d</a> - streamlines
+	</div>
+	<script src="./t3d_lib/libs/nanobar.js"></script>
+	<script src="./axios.min.js"></script>
+	<script async src="./t3d_lib/libs/es-module-shims.js"></script>
+	<script type="importmap">
+		{
+            "imports": {
+                "t3d": "./t3d_lib/build/t3d.module.js"
+            }
+        }
+    </script>
+
+	<script type="module">
+		import * as t3d from 't3d';
+		import { GLTFLoader } from './t3d_lib/jsm/loaders/glTF/GLTFLoader.js';
+		import { OrbitControls } from './t3d_lib/jsm/controls/OrbitControls.js';
+		import { GUI } from './t3d_lib/libs/lil-gui.esm.min.js';
+		import { ForwardRenderer } from './t3d_lib/jsm/render/ForwardRenderer.js';
+		import { Streamlines } from './src/t3d-streamlines.js';
+		import { AxisHelper } from './t3d_lib/jsm/objects/AxisHelper.js';
+		import { TextureCubeLoader } from './t3d_lib/jsm/loaders/TextureCubeLoader.js';
+
+
+		var streamlines;
+		let width = window.innerWidth || 2;
+		let height = window.innerHeight || 2;
+
+		const canvas = document.createElement('canvas');
+		canvas.width = width;
+		canvas.height = height;
+		document.body.appendChild(canvas);
+
+		const contextParams = { antialias: true, alpha: true };
+		const gl = canvas.getContext("webgl2", contextParams) || canvas.getContext("webgl", contextParams);
+		const renderer = new t3d.Renderer(gl);
+		renderer.clearco
+		const capabilities = renderer.renderPass.capabilities;
+		const isWebGL2 = capabilities.version > 1;
+
+
+		const glScene = new t3d.Scene();
+
+		const camera = new t3d.Camera();
+		camera.updateMatrix();
+		camera.position.set(337.60228928950056, 163.34319852751935, -53.98735954497077);
+
+		camera.lookAt(new t3d.Vector3(0, 0, 0), new t3d.Vector3(0, 1, 0));
+		camera.setPerspective(45 / 180 * Math.PI, width / height, 0.1, 1000);
+		glScene.add(camera);
+
+		const ambientLight = new t3d.AmbientLight(0xffffff, 1);
+		glScene.add(ambientLight);
+
+		const axis = new AxisHelper(100);
+		glScene.add(axis);
+
+
+		const forwardRenderer = new ForwardRenderer(canvas);
+		forwardRenderer.renderPass.state.colorBuffer.setClear(0.6, 0.7, 0.8, 1);
+
+		const controller = new OrbitControls(camera, canvas);
+		controller.target.set(19, 105, 31);
+
+		async function init() {
+			var { data } = await axios.get(
+				"./data/caruvw1.json"
+			);
+			data.bounds = { "xMin": .0, "xMax": 38.0, "yMin": 0.0, "yMax": 209.0, "zMin": 0.0, "zMax": 61.0 }
+			streamlines = new Streamlines(data.grid, data.bounds, { noParticles: 10000, velocityFactor: 50.0, maxAge: 100 });//
+			let steamlinesGroup = streamlines.object();
+			steamlinesGroup.euler.z = 0.5 * Math.PI;
+			steamlinesGroup.position.set(19, 0, -100);
+			// steamlinesGroup.euler.y= Math.PI;
+			streamlines.object().children.forEach(v=>v.frustumCulled=false);
+			glScene.add(steamlinesGroup);
+			
+			loop();
+
+		}
+		const file = "./data/car.glb";
+
+		const nanobar = new Nanobar();
+		nanobar.el.style.background = "gray";
+
+		const loadingManager = new t3d.LoadingManager(function () {
+			nanobar.go(100);
+			nanobar.el.style.background = "transparent";
+		}, function (url, itemsLoaded, itemsTotal) {
+			if (itemsLoaded < itemsTotal) {
+				nanobar.go(itemsLoaded / itemsTotal * 100);
+			}
+		});
+
+		const loader = new GLTFLoader(loadingManager);
+		loader.autoLogError = false;
+
+		console.time('GLTFLoader');
+		loader.load(file).then(function (result) {
+			console.timeEnd('GLTFLoader');
+			const cube_texture = new TextureCubeLoader().load([
+			"./data/Park2/posx.jpg",
+			"./data/Park2/negx.jpg",
+			"./data/Park2/posy.jpg",
+			"./data/Park2/negy.jpg",
+			"./data/Park2/posz.jpg",
+			"./data/Park2/negz.jpg"
+		]);
+			const object = result.root;
+
+			object.traverse(node => {
+				if (node.isMesh) {
+					node.material.envMap = cube_texture;
+					node.material.envMapIntensity =2.0;
+					node.material.needsUpdate=true;
+
+				}
+			});
+
+			object.scale.set(2, 2, 2);
+			object.euler.y = Math.PI;
+			object.position.set(-10, 5, -30.5);
+			// object
+			glScene.add(object);
+
+			init();
+		}).catch(e => console.error(e));
+
+
+		function loop() {
+			controller.update();
+			streamlines.animate();
+			forwardRenderer.render(glScene, camera);
+			requestAnimationFrame(loop);
+		}
+
+
+		function onWindowResize() {
+			width = window.innerWidth || 2;
+			height = window.innerHeight || 2;
+
+			camera.setPerspective(45 / 180 * Math.PI, width / height, 1, 1000);
+			forwardRenderer.backRenderTarget.resize(width, height);
+		}
+		window.addEventListener("resize", onWindowResize, false);
+
+		const gui = new GUI();
+
+	</script>
+</body>
+
+</html>
