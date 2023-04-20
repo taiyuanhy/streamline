@@ -68,7 +68,7 @@
 
 		async function init() {
 			var { data } = await axios.get(
-				"./data/tornado.json"
+				"https://cdn.uino.cn/thing-earth-space/data/streamline/data/tornado.json"
 			);
 			
 			streamlines = new Streamlines(data.grid, data.bounds,{ noParticles: 5000,maxAge:100});//
