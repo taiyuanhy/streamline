@@ -65,8 +65,8 @@
 		const ambientLight = new t3d.AmbientLight(0xffffff, 1);
 		glScene.add(ambientLight);
 
-		const axis = new AxisHelper(100);
-		glScene.add(axis);
+		//const axis = new AxisHelper(100);
+		//glScene.add(axis);
 
 
 		const forwardRenderer = new ForwardRenderer(canvas);
@@ -77,7 +77,7 @@
 
 		async function init() {
 			var { data } = await axios.get(
-				"./data/caruvw1.json"
+				"https://cdn.uino.cn/thing-earth-space/data/streamline/data/caruvw1.json"
 			);
 			data.bounds = { "xMin": .0, "xMax": 38.0, "yMin": 0.0, "yMax": 209.0, "zMin": 0.0, "zMax": 61.0 }
 			streamlines = new Streamlines(data.grid, data.bounds, { noParticles: 10000, velocityFactor: 50.0, maxAge: 100 });//
@@ -91,7 +91,7 @@
 			loop();
 
 		}
-		const file = "./data/car.glb";
+		const file = "https://cdn.uino.cn/thing-earth-space/data/streamline/data/car.glb";
 
 		const nanobar = new Nanobar();
 		nanobar.el.style.background = "gray";
@@ -112,12 +112,12 @@
 		loader.load(file).then(function (result) {
 			console.timeEnd('GLTFLoader');
 			const cube_texture = new TextureCubeLoader().load([
-			"./data/Park2/posx.jpg",
-			"./data/Park2/negx.jpg",
-			"./data/Park2/posy.jpg",
-			"./data/Park2/negy.jpg",
-			"./data/Park2/posz.jpg",
-			"./data/Park2/negz.jpg"
+			"https://cdn.uino.cn/thing-earth-space/data/streamline/park2/posx.jpg",
+			"https://cdn.uino.cn/thing-earth-space/data/streamline/park2/negx.jpg",
+			"https://cdn.uino.cn/thing-earth-space/data/streamline/park2/posy.jpg",
+			"https://cdn.uino.cn/thing-earth-space/data/streamline/park2/negy.jpg",
+			"https://cdn.uino.cn/thing-earth-space/data/streamline/park2/posz.jpg",
+			"https://cdn.uino.cn/thing-earth-space/data/streamline/park2/negz.jpg"
 		]);
 			const object = result.root;
 
