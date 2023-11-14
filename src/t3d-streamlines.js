@@ -29,12 +29,14 @@ export class Streamlines {
   constructor(data, bounds, options = {}) {
     this._verifyInputs(data, bounds, options);
     this.data = data;
+    this.velocity= undefined;
     this.bounds = this._computeBounds(data, bounds);
     this.noParticles = options.noParticles || 10000;
     this.maxAge = options.maxAge || 200;
     this.fadeOutPercentage = options.fadeOutPercentage || 0.1;
     this.individualColors = options.individualColors || 100;
     this.velocityFactor = options.velocityFactor || 0.01;
+    this._computeVelocity(data);
     this.min = options.min || this._computeMin(data);
     this.max = options.max || this._computeMax(data);
     this.noData = options.nodata || null;
@@ -66,25 +68,56 @@ export class Streamlines {
     this._addLines();
   }
 
-  _computeMin(data) {
+  _computeVelocity(data) {
     var u = data.u.flat(3);
     var v = data.v.flat(3);
     var w = data.w.flat(3);
     var min = Infinity;
-    for (let i = 0; i < u.length; i++) {
-      min = Math.min(min, (u[i] ** 2 + v[i] ** 2 + w[i] ** 2) ** 0.5);
+    // for (let i = 0; i < u.length; i++) {
+    //   this.velocity[i] = (u[i] ** 2 + v[i] ** 2 + w[i] ** 2) ** 0.5;
+    // }
+    let velocityTem = this._clone3DArray(data.u);
+    for (let i = 0; i < data.u.length; i++) {
+      for (let j = 0; j < data.u[0].length; j++) {
+        for (let k = 0; k < data.u[0][0].length; k++) {
+          velocityTem[i][j][k]= (data.u[i][j][k] ** 2 + data.v[i][j][k] ** 2 + data.w[i][j][k] ** 2) ** 0.5
+        }
+      }
+      
     }
+    this.velocity = velocityTem;
+  }
+  _clone3DArray(arr) {
+    return arr.map(function (subArr) {
+      return subArr.map(function (subSubArr) {
+        return subSubArr.slice();
+      });
+    });
+  }
+  _computeMin(data) {
+    // var u = data.u.flat(3);
+    // var v = data.v.flat(3);
+    // var w = data.w.flat(3);
+    // var min = Infinity;
+    // for (let i = 0; i < u.length; i++) {
+    //   this.velocity[i] = (u[i] ** 2 + v[i] ** 2 + w[i] ** 2) ** 0.5;
+    //   min = Math.min(min, this.velocity[i]);
+    // }
+    let vel = this.velocity.flat(3);
+    let min = Math.min(...vel);
     return min;
   }
 
   _computeMax(data) {
-    var u = data.u.flat(3);
-    var v = data.v.flat(3);
-    var w = data.w.flat(3);
-    var max = -Infinity;
-    for (let i = 0; i < u.length; i++) {
-      max = Math.max(max, (u[i] ** 2 + v[i] ** 2 + w[i] ** 2) ** 0.5);
-    }
+    // var u = data.u.flat(3);
+    // var v = data.v.flat(3);
+    // var w = data.w.flat(3);
+    // var max = -Infinity;
+    // for (let i = 0; i < u.length; i++) {
+    //   max = Math.max(max, this.velocity[i]);
+    // }
+    let vel = this.velocity.flat(3);
+    let max = Math.max(...vel);
     return max;
   }
 
@@ -248,6 +281,7 @@ export class Streamlines {
 
     for (var p = 0; p < this.noParticles; p++) {
       let line = new Mesh(geometry.clone(), [material.clone()]);
+      line.frustumCulled =false;
       line.age = 0;
       line.maxAge =
         Math.round((this.maxAge - this.fadeOut) * Math.random()) + this.fadeOut;
@@ -305,8 +339,8 @@ export class Streamlines {
       k < this.bounds["zLen"] &&
       this.data.u[i][j][k] !== null
     ) {
-      var u = this.data.u[i][j][k];
-      var v = this.data.v[i][j][k];
+      var u = -this.data.u[i][j][k];
+      var v = -this.data.v[i][j][k];
       var w = this.data.w[i][j][k];
       var m = this.colorSource ? this.data.m[i][j][k] : NaN;
       var x = xin + u * this.velocityFactor;
